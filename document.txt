@@ -1,0 +1,113 @@
+docker run --name mongodb -d -p 27017:27017 mongo:latest
+
+-Buscar la pelicula cuyo titulo sea 'Die Hard'
+
+{
+    budget: 2800000000
+}
+Para querys de comparacion en mongo db se usa el prefijo de $
+
+-$eq igual que
+-$gt mayor que 
+-$gte mayor igual que
+-$lt menor que
+-$lte menor que
+{
+    budget: {
+        $gte: 28000000, 
+        $lt: 30000000
+    }
+}
+
+{
+    budget:{
+        $gte: 28000000
+    }, 
+    revenue:{
+        $gte: 168840000
+    }
+}
+{
+    runtime:{
+        $gte: 90
+    },
+    vote_average:{
+        $gte: 8
+    }
+}
+-$in Contiene  
+-$ne Diferente
+-$nin No contiene
+
+{
+    original_title:{$ne: 'Toy Story'}
+}
+
+{
+    original_language:{$in:['es', 'fr']}
+}
+{
+    genres: {$in: [{
+        "id" :16,
+        "name": "Animation"
+    },{
+        "id" :12,
+        "name": "Adeventure"
+    }]}
+}
+
+{
+    production_companies : {$in:[{
+            "name" : "Warner Bros.", 
+            "id" : 6194
+        },{
+            "name" : "Twentieth Century Fox Film Corporation",
+            "id": 306
+        }]},
+    vote_average:{
+        $gt :8
+    }
+}
+
+NOTACION MAS FACIL
+{
+    'production_companies.name': 'Warner Bros.'
+}
+
+{
+    'belongs_to_collection.name':'Toy Story Collection'
+}
+
+{
+    'cast.name':'Tom Hanks'
+}
+
+
+REGEX
+Todas las palabras que empiezan por Tom: /^Tom/
+Todas las palabras que acaben por Hanks: /Hanks$/
+Palabra que contienen Story: /Story/
+
+{
+    'cast.name':/^Will /
+}
+
+INDICES
+{_id: ObjectId( '60bb8283b375e2292a8d70f7')}
+
+{original_title:'Toy Story'}
+
+Proyecciones y ordenaciones
+Inclusion
+{
+    original_title:1,
+    budget:1
+}
+Exclusion
+{
+    original_title:0
+}
+Sort
+{ budget: -1, original_title:1}
+
+
