@@ -132,4 +132,11 @@ CREATE TRIGGER update_crypto_prices_timestamp
 
 -- Grant necessary permissions
 GRANT SELECT ON ALL TABLES IN SCHEMA PUBLIC TO postgres;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'airflow') THEN
+        CREATE ROLE airflow;
+    END IF;
+END
+$$;
 GRANT SELECT ON ALL TABLES IN SCHEMA PUBLIC TO airflow;

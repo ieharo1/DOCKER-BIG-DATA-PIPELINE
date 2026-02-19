@@ -225,10 +225,13 @@ class DataTransformer:
 
         aggregates = self.generate_aggregates(df)
 
-        transformed_data = df.to_dict("records")
+        # Ensure values are JSON-serializable for Airflow XCom.
+        transformed_data = json.loads(json.dumps(df.to_dict("records"), default=str))
 
         if not aggregates.empty:
-            aggregate_data = aggregates.to_dict("records")
+            aggregate_data = json.loads(
+                json.dumps(aggregates.to_dict("records"), default=str)
+            )
         else:
             aggregate_data = []
 

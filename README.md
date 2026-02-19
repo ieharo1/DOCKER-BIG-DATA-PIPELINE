@@ -162,37 +162,47 @@ docker compose ps
 | MinIO Console | 9001 | http://localhost:9001 | minioadmin / minioadmin_secure_2026 |
 | MinIO API | 9000 | http://localhost:9000 | minioadmin / minioadmin_secure_2026 |
 | Metabase | 3000 | http://localhost:3000 | zackharo1@gmail.com / metabase_secure_2026 |
-| PostgreSQL | 5432 | localhost:5432 | postgres / postgres_secure_2026 |
+| PostgreSQL | 5433 | localhost:5433 | postgres / postgres_secure_2026 |
 | Redis | 6379 | localhost:6379 | (sin autenticacion) |
 
 ---
 
 ## Uso del Pipeline
 
+### Como funciona (paso a paso)
+
+1. Airflow ejecuta el DAG `crypto_data_pipeline` cada hora (`@hourly`).
+2. `extract` consulta CoinGecko y obtiene precios de criptomonedas.
+3. `store_raw` guarda el JSON crudo en MinIO (`pipeline-raw`).
+4. `transform` limpia y normaliza datos para analitica.
+5. `load_db` carga resultados en PostgreSQL:
+   - `crypto_prices`
+   - `price_aggregates`
+6. Metabase consulta PostgreSQL para visualizacion.
+
 ### Acceder a Airflow
 
 1. Abre http://localhost:8080 en tu navegador
 2. Inicia sesion con:
    - Usuario: `airflow`
-   - Contraseña: `airflow_secure_2026`
-3. Busca el DAG `crypto_data_pipeline` en la lista
-4. Activa el DAG haciendo clic en el switch
-5. Dispara una ejecucion manual haciendo clic en "Play" > "Trigger DAG"
+   - Contrasena: `airflow_secure_2026`
+3. Busca el DAG `crypto_data_pipeline`
+4. Verifica que este en `On` (activo)
+5. Si quieres ejecucion manual: `Trigger DAG`
 
-### Acceder a Metabase
+### Acceder a Metabase (primer arranque)
 
 1. Abre http://localhost:3000
-2. Configura el idioma preferido
-3. Inicia sesion con:
-   - Email: `zackharo1@gmail.com`
-   - Contraseña: `metabase_secure_2026`
-4. Conecta a la base de datos PostgreSQL:
-   - Host: `postgres`
+2. Completa el asistente de bienvenida y crea usuario admin
+3. En "Add your data" usa:
+   - Servidor: `postgres`
    - Puerto: `5432`
-   - Base de datos: `pipeline_warehouse`
-   - Usuario: `postgres`
-   - Contraseña: `postgres_secure_2026`
-5. Explora los datos en las tablas `crypto_prices` y `price_aggregates`
+   - Nombre de la base de datos: `pipeline_warehouse`
+   - Nombre usuario: `postgres`
+   - Contrasena: `postgres_secure_2026`
+4. Guarda la conexion y explora las tablas:
+   - `crypto_prices`
+   - `price_aggregates`
 
 ### Acceder a MinIO
 
@@ -200,7 +210,7 @@ docker compose ps
 2. Inicia sesion con:
    - Access Key: `minioadmin`
    - Secret Key: `minioadmin_secure_2026`
-3. Explora el bucket `pipeline-raw` donde se almacenan los datos crudos
+3. Revisa el bucket `pipeline-raw`
 
 ---
 
@@ -219,28 +229,35 @@ docker compose logs airflow-webserver
 docker compose logs postgres
 ```
 
+### Verificar corridas del DAG
+
+```bash
+# Listar ejecuciones del DAG
+docker compose exec airflow-webserver airflow dags list-runs -d crypto_data_pipeline --no-backfill
+
+# Debes ver state=success en las ultimas corridas
+```
+
 ### Verificar base de datos
 
 ```bash
-# Conectar a PostgreSQL
-docker exec -it pipeline_postgres psql -U postgres -d pipeline_warehouse
-
-# Listar tablas
-\dt
-
-# Ver datos
-SELECT * FROM crypto_prices LIMIT 5;
+# Conteos esperados (> 0 cuando el DAG ya corrio)
+docker compose exec postgres psql -U postgres -d pipeline_warehouse -c "SELECT COUNT(*) FROM crypto_prices; SELECT COUNT(*) FROM price_aggregates;"
 ```
 
 ### Verificar MinIO
 
 ```bash
-# Usar mc CLI
-docker exec pipeline_minio mc ls local/pipeline-raw/
+# Objetos crudos guardados en el bucket
+docker compose exec airflow-worker python - <<'PY'
+from minio import Minio
+c = Minio('minio:9000', access_key='minioadmin', secret_key='minioadmin_secure_2026', secure=False)
+for o in c.list_objects('pipeline-raw', recursive=True):
+    print(o.object_name)
+PY
 ```
 
 ---
-
 ## Configuracion de Seguridad
 
 ### Buenas Practicas Implementadas

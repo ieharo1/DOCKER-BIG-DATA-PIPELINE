@@ -82,6 +82,7 @@ def store_raw_task(**context):
             logger.warning("No extracted data found, skipping raw storage")
             return {"success": True, "skipped": True}
 
+        from io import BytesIO
         from minio import Minio
         import json
 
@@ -101,9 +102,10 @@ def store_raw_task(**context):
         object_name = f"raw/{today.strftime('%Y')}/{today.strftime('%m')}/{today.strftime('%d')}/crypto_prices_{today.strftime('%Y%m%d_%H%M%S')}.json"
 
         data_json = json.dumps(extracted_data, indent=2, default=str).encode("utf-8")
+        data_stream = BytesIO(data_json)
 
         minio_client.put_object(
-            bucket_name, object_name, data_json, length=len(data_json)
+            bucket_name, object_name, data_stream, length=len(data_json)
         )
 
         logger.info(f"Raw data stored: {object_name}")

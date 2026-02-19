@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+from io import BytesIO
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 import psycopg2
@@ -95,9 +96,13 @@ class DataLoader:
                 data = data.encode("utf-8")
 
             data_length = len(data)
+            data_stream = BytesIO(data)
 
             client.put_object(
-                self.minio_config["bucket"], object_name, data, length=data_length
+                self.minio_config["bucket"],
+                object_name,
+                data_stream,
+                length=data_length,
             )
 
             logger.info(f"Uploaded to MinIO: {object_name}")
